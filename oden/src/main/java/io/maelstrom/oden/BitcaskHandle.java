@@ -91,6 +91,7 @@ class BitcaskHandle implements Handle
 		FileChannel channel_ = file.GetChannel();
 		try
 		{
+			buffer.flip();
 			int written = channel_.write(buffer);
 			long position = channel_.position();
 			return position - written;
