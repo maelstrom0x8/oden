@@ -15,7 +15,6 @@ class BitcaskHandle implements Handle
 	private final Path dataDirectory;
 	private final int maxFileSize;
 	private Path currentActiveFile;
-	private FileOutputStream out;
 	private FileChannel channel;
 	private ExecutorService executorService;
 
@@ -70,7 +69,8 @@ class BitcaskHandle implements Handle
 	{
 		FileChannel channel_ = file.GetChannel();
 		ByteBuffer buffer = ByteBuffer.allocate(size);
-		channel_.read(buffer, offset);
+		channel_.position(offset);
+		channel_.read(buffer);
 		return buffer.array();
 	}
 
@@ -94,7 +94,7 @@ class BitcaskHandle implements Handle
 			buffer.flip();
 			int written = channel_.write(buffer);
 			long position = channel_.position();
-			return position - written;
+			return position - valsz;
 		} catch (IOException e)
 		{
 			throw new RuntimeException(e);

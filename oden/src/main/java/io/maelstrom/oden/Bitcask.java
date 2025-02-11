@@ -3,6 +3,7 @@ package io.maelstrom.oden;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.channels.FileLock;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
@@ -68,7 +69,7 @@ class Bitcask implements Closeable
 		KeyDir.Entry entry = KEY_DIR.Get(key);
 		try
 		{
-			var file = BitcaskFile.Open(entry.fileId);
+			var file = BitcaskFile.Open(entry.fileId, READ);
 			byte[] value = ((BitcaskHandle) handle).Read(file, entry.valuesz, entry.valuepos);
 			return new String(value);
 		} catch (IOException e)
