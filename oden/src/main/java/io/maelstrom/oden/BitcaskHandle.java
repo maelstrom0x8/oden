@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.ExecutorService;
 
 class BitcaskHandle implements Handle
 {
@@ -15,9 +14,6 @@ class BitcaskHandle implements Handle
 	private final Path dataDirectory;
 	private final int maxFileSize;
 	private Path currentActiveFile;
-	private FileChannel channel;
-	private ExecutorService executorService;
-
 
 	public BitcaskHandle(Path dataDirectory, int maxFileSize)
 	{
@@ -138,14 +134,6 @@ class BitcaskHandle implements Handle
 	@Override
 	public void Open()
 	{
-		try
-		{
-			out = new FileOutputStream(currentActiveFile.toFile(), true);
-//			this.channel = FileChannel.open(currentActiveFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
-		} catch (IOException e)
-		{
-			throw new RuntimeException(e);
-		}
 	}
 
 	@Override

@@ -3,9 +3,7 @@ package io.maelstrom.oden;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.channels.FileLock;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -13,7 +11,7 @@ import static java.nio.file.StandardOpenOption.*;
 
 class Bitcask implements Closeable
 {
-	private static final String tombstone = "%";
+	private static final String tombstone = "0xDEAD";
 	private static final KeyDir KEY_DIR = new KeyDir();
 	private final BitcaskHandle handle;
 	private FileLock lock;
@@ -23,10 +21,9 @@ class Bitcask implements Closeable
 		this.handle = handle;
 	}
 
-	public static Bitcask create(Path dataDirectory, int maxFileSize) throws IOException
+	public static Bitcask Create(Path dataDirectory, int maxFileSize) throws IOException
 	{
 		BitcaskHandle handle = new BitcaskHandle(dataDirectory, maxFileSize);
-		handle.Open();
 		Bitcask bitcask = new Bitcask(handle);
 		bitcask.Lock();
 		return bitcask;
@@ -43,14 +40,14 @@ class Bitcask implements Closeable
 			throw new RuntimeException(e);
 		}
 		var pos = handle.Write(file, key, value);
-		var entry = MakeEntry(handle.CurrentActiveFile().toString(), value.length(), pos, System.currentTimeMillis());
+		var entry = MakeEntry(handle.CurrentActiveFile().getFileName().toString(), value.length(), pos, System.currentTimeMillis());
 		KEY_DIR.Put(key, entry);
 	}
 
 	public static void Delete(Handle handle, String key)
 	{
 		var entry = KEY_DIR.Get(key);
-		if(entry != null)
+		if (entry != null)
 		{
 			try
 			{
@@ -69,7 +66,8 @@ class Bitcask implements Closeable
 		KeyDir.Entry entry = KEY_DIR.Get(key);
 		try
 		{
-			var file = BitcaskFile.Open(entry.fileId, READ);
+			Path path = ((BitcaskHandle) handle).DataDirectory().resolve(entry.fileId);
+			var file = BitcaskFile.Open(path.toString(), READ);
 			byte[] value = ((BitcaskHandle) handle).Read(file, entry.valuesz, entry.valuepos);
 			return new String(value);
 		} catch (IOException e)

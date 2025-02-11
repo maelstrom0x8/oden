@@ -13,7 +13,7 @@ public class Oden
 		this.options = options == null ? OdenOptions.Default() : options;
 		try
 		{
-			this.bitcask = Bitcask.create(this.options.dataDirectory, this.options.maxFileSize);
+			this.bitcask = Bitcask.Create(this.options.dataDirectory, this.options.maxFileSize);
 		} catch (IOException e)
 		{
 			throw new RuntimeException(e);
