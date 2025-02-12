@@ -1,76 +1,42 @@
 package io.maelstrom.oden;
 
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 class BitcaskHandle implements Handle
 {
+	BitcaskFile file;
+	FileChannel channel_;
 
-	private final Path dataDirectory;
-	private final int maxFileSize;
-	private Path currentActiveFile;
-
-	public BitcaskHandle(Path dataDirectory, int maxFileSize)
+	BitcaskHandle(BitcaskFile file)
 	{
-		this.dataDirectory = dataDirectory.normalize();
-		this.maxFileSize = maxFileSize;
-
-		try
-		{
-			if (!Files.exists(dataDirectory))
-			{
-				Files.createDirectory(dataDirectory);
-			}
-
-
-			if (!ReadActiveFile())
-			{
-				long fileId = System.currentTimeMillis();
-				this.currentActiveFile = dataDirectory.resolve("current-" + fileId);
-				Files.createFile(currentActiveFile);
-			}
-
-		} catch (IOException e)
-		{
-			throw new RuntimeException(e);
-		}
+		this.file = file;
+		this.channel_ = file.GetChannel();
 	}
 
-	public Path DataDirectory()
+	public static BitcaskHandle Open(String path, StandardOpenOption... options) throws IOException
 	{
-		return dataDirectory;
+		BitcaskFile file = BitcaskFile.Open(path, options);
+		return new BitcaskHandle(file);
 	}
 
-	public int MaxFileSize()
+	public byte[] Read(int size) throws IOException
 	{
-		return maxFileSize;
+		return Read(size, 0);
 	}
 
-	public Path CurrentActiveFile()
+	public byte[] Read(int size, long offset) throws IOException
 	{
-		return currentActiveFile;
-	}
-
-	public byte[] Read(BitcaskFile file, int size) throws IOException
-	{
-		return Read(file, size, 0);
-	}
-
-	public byte[] Read(BitcaskFile file, int size, long offset) throws IOException
-	{
-		FileChannel channel_ = file.GetChannel();
 		ByteBuffer buffer = ByteBuffer.allocate(size);
 		channel_.position(offset);
 		channel_.read(buffer);
 		return buffer.array();
 	}
 
-	public long Write(BitcaskFile file, String key, String value)
+	public long Write(String key, String value)
 	{
 		var tsz = System.currentTimeMillis();
 		var ksz = key.length();
@@ -84,7 +50,6 @@ class BitcaskHandle implements Handle
 		buffer.put(key.getBytes());
 		buffer.put(value.getBytes());
 
-		FileChannel channel_ = file.GetChannel();
 		try
 		{
 			buffer.flip();
@@ -93,54 +58,35 @@ class BitcaskHandle implements Handle
 			return position - valsz;
 		} catch (IOException e)
 		{
-			throw new RuntimeException(e);
-		} finally
-		{
-			file.Close();
+			e.printStackTrace(System.err);
 		}
 
-	}
-
-	public boolean ReadActiveFile()
-	{
-		try
-		{
-			var dir = dataDirectory.resolve("current");
-
-			if (Files.exists(dir))
-			{
-				String activeFile = Files.readString(dir);
-				this.currentActiveFile = dataDirectory.resolve(activeFile);
-				return true;
-			}
-		} catch (IOException e)
-		{
-			throw new RuntimeException(e);
-		}
-		return false;
-	}
-
-	public void WriteActiveFile()
-	{
-		try (FileOutputStream stream = new FileOutputStream(dataDirectory.resolve("current").toFile()))
-		{
-			stream.write(currentActiveFile.getFileName().toString().getBytes());
-		} catch (IOException e)
-		{
-			throw new RuntimeException(e);
-		}
+		return -1;
 	}
 
 	@Override
 	public void Open()
 	{
+		if (!channel_.isOpen())
+		{
+			this.channel_ = file.GetChannel();
+		}
 	}
 
 	@Override
 	public void Close()
 	{
-		WriteActiveFile();
-
-//		executorService.shutdown();
+		try
+		{
+			if (channel_ != null && channel_.isOpen())
+			{
+				channel_.close();
+			}
+		} catch (IOException e)
+		{
+			e.printStackTrace(System.err);
+		}
 	}
+
+
 }

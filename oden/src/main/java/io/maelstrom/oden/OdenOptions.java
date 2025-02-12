@@ -7,7 +7,7 @@ public class OdenOptions
 {
 
 	final Path dataDirectory;
-	final int maxFileSize;
+	final long maxFileSize;
 
 	public OdenOptions(String dataDirectory, int maxFileSize)
 	{
@@ -27,7 +27,7 @@ public class OdenOptions
 	{
 		String homeDir = System.getProperty("user.home");
 		var dir = homeDir + "/.oden/data";
-		var sz = 1024 * 1024 * 1024;
+		var sz = 3 * 1073741824;
 
 		return new OdenOptions(dir, sz);
 	}
@@ -37,7 +37,7 @@ public class OdenOptions
 		return dataDirectory;
 	}
 
-	public int GetMaxFileSize()
+	public long GetMaxFileSize()
 	{
 		return maxFileSize;
 	}

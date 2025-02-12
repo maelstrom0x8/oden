@@ -8,14 +8,17 @@ import java.nio.file.Path;
 class BitcaskFile
 {
 	private final FileChannel channel;
+	private final Path path;
 
 	private BitcaskFile(Path path) throws IOException
 	{
+		this.path = path;
 		channel = FileChannel.open(path);
 	}
 
 	private BitcaskFile(Path path, OpenOption... options) throws IOException
 	{
+		this.path = path;
 		channel = FileChannel.open(path, options);
 	}
 
@@ -44,4 +47,20 @@ class BitcaskFile
 			throw new RuntimeException(e);
 		}
 	}
+
+	public Path GetPath()
+	{
+		return path;
+	}
+
+	public String FileName()
+	{
+		return path.getFileName().toString();
+	}
+
+	public int Id()
+	{
+		return Integer.parseInt(FileName().split("-")[1].split("\\.")[0]);
+	}
+
 }

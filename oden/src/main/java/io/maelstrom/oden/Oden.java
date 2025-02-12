@@ -22,17 +22,17 @@ public class Oden
 
 	public void Put(String key, String value)
 	{
-		Bitcask.Put(bitcask.GetHandle(), key, value);
+		bitcask.Put(key, value);
 	}
 
 	public String Get(String key)
 	{
-		return Bitcask.Get(Handle(), key);
+		return bitcask.Get(key);
 	}
 
 	public void Delete(String key)
 	{
-		Bitcask.Delete(Handle(), key);
+		bitcask.Delete(key);
 	}
 
 	public Handle Handle()
