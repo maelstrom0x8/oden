@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
+import java.util.zip.CRC32;
 
 class BitcaskHandle implements Handle
 {
@@ -42,18 +43,28 @@ class BitcaskHandle implements Handle
 		var ksz = key.length();
 		var valsz = value.length();
 
-		ByteBuffer buffer = ByteBuffer.allocate(8 + 4 + ksz + 4 + valsz);
-		buffer.putLong(tsz);
+		ByteBuffer buffer = ByteBuffer.allocate( 8 + 4 + ksz + 4 + valsz + 8);
+		buffer.putLong(8, tsz);
+		buffer.position(16);
 		buffer.putInt(ksz);
 		buffer.putInt(valsz);
-
 		buffer.put(key.getBytes());
 		buffer.put(value.getBytes());
 
+		int i = buffer.capacity() - 8;
+		byte[] bytes = new byte[i];
+		buffer.get(8, bytes);
+
+		CRC32 crc32 = new CRC32();
+		crc32.update(bytes);
+		long crc = crc32.getValue();
+
+		buffer.position(0);
+		buffer.putLong(crc);
+
 		try
 		{
-			buffer.flip();
-			int written = channel_.write(buffer);
+			channel_.write(buffer);
 			long position = channel_.position();
 			return position - valsz;
 		} catch (IOException e)
