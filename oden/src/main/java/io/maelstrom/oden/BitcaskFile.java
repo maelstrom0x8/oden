@@ -2,6 +2,7 @@ package io.maelstrom.oden;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 
@@ -48,6 +49,17 @@ class BitcaskFile
 		}
 	}
 
+	public long Size()
+	{
+		try
+		{
+			return Files.size(path);
+		} catch (IOException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+
 	public Path GetPath()
 	{
 		return path;
@@ -60,7 +72,14 @@ class BitcaskFile
 
 	public int Id()
 	{
-		return Integer.parseInt(FileName().split("-")[1].split("\\.")[0]);
+
+		String[] parts = path.getFileName().toString().split("_");
+		return Integer.parseInt(parts[1].split("\\.")[0]);
 	}
 
+	@Override
+	public String toString()
+	{
+		return path.toString();
+	}
 }

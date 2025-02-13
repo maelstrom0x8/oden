@@ -10,8 +10,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static java.nio.file.StandardOpenOption.*;
+import static java.nio.file.attribute.PosixFilePermission.*;
 
 class Bitcask implements Closeable
 {
@@ -22,7 +25,8 @@ class Bitcask implements Closeable
 	private BitcaskHandle handle = null;
 	private FileLock lock;
 	private BitcaskFile current;
-	private Set<String> dataFiles = new HashSet<>();
+	private final Set<String> dataFiles = new HashSet<>();
+	private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
 	public Bitcask(Path dataDirectory, long maxFileSize) throws IOException
 	{
@@ -45,8 +49,9 @@ class Bitcask implements Closeable
 		{
 			int id_ = new Random().nextInt(1000);
 
-			Path path = dataDirectory.resolve("current-" + id_ + ".odn");
+			Path path = dataDirectory.resolve(System.currentTimeMillis() + "_" + id_ + ".active.odn");
 			handle = BitcaskHandle.Open(path.toString(), CREATE, WRITE, APPEND, DSYNC);
+			current = handle.file;
 		}
 
 		LoadDataFiles();
@@ -92,13 +97,65 @@ class Bitcask implements Closeable
 		}
 	}
 
+	public Set<String> GetDataFiles()
+	{
+		return dataFiles;
+	}
+
+
 	private void WriteActiveFile() throws IOException
 	{
 		Files.writeString(dataDirectory.resolve("current"), handle.file.FileName());
 	}
 
+	/**
+	 * Rotates the active file by creating a new file and closing the current one.
+	 * The new file is then set as the active file.
+	 */
+	public void RotateActiveFile() throws Exception
+	{
+		var prev = current;
+		var id_ = prev.Id() + 1;
+		handle.Close();
+		String filename = System.currentTimeMillis() + "_" + id_ + ".active.odn";
+		String path = dataDirectory.resolve(filename).toString();
+		handle = BitcaskHandle.Open(path, CREATE, WRITE, APPEND, DSYNC);
+		current = handle.file;
+
+		WriteActiveFile();
+		dataFiles.add(current.FileName());
+		Files.setPosixFilePermissions(prev.GetPath(), Set.of(GROUP_READ, OTHERS_READ, OWNER_READ));
+		String new_name = prev.FileName().replace("active", "old");
+		Files.move(prev.GetPath(), dataDirectory.resolve(new_name));
+	}
+
+
+	/**
+	 * Checks if the current active file has reached the maximum file size threshold.
+	 * If the threshold is reached, rotates the active file.
+	 */
+	public void BeginThresholdCheck()
+	{
+		if (current.Size() < maxFileSize)
+		{
+			return;
+		}
+
+		try
+		{
+			RotateActiveFile();
+		} catch (Exception e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+
+
 	public void Put(String key, String value)
 	{
+
+		BeginThresholdCheck();
+
 		var pos = handle.Write(key, value);
 		var entry = MakeEntry(handle.file.FileName(), value.length(), pos, System.currentTimeMillis());
 		KEY_DIR.Put(key, entry);
@@ -160,6 +217,7 @@ class Bitcask implements Closeable
 		lock.release();
 		handle.Close();
 	}
+
 
 	private static class KeyDir
 	{
