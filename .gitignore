@@ -341,3 +341,5 @@ flycheck_*.el
 .idea/
 data
 tmp
+test
+bin
