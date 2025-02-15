@@ -1,16 +1,41 @@
 # Oden
 
-## Overview
+This project aims to build a key-value store from scratch using the Bitcask storage model. It serves as an educational endeavor to grasp some fundamentals of data storage systems. The key-value store supports basic put/get operations, writes data to append-only files, guarantees data durability, and performs maintenance through merging processes. Key operations occur in a few important ways: every write goes to an append-only file, and an in-memory index is maintained to track where the value for each key resides. When necessary, a merge process is used to clean up. This is a learning project and a work in progress, built to understand storage systems better, so expect some rough edges! Currently, the focus is on implementing the merge process and adding better configuration options.
 
-Oden is a Bitcask implementation, which is a high-performance key-value store written in Java.
+## Getting Started
 
-## Features
+After building the project, you can use Oden in your Java application like this (see [Installation](#installation) for build instructions):
 
-- Fast read and write operations
-- Simple design
-- Efficient data storage
+```java
+import io.maelstrom.oden.OdenOptions;
+import io.maelstrom.oden.Oden;
 
-## Installation
+{
+    var options = OdenOptions.Default(); // This will create a new Oden instance with default options
+    Oden oden = Oden.open(options);
+    
+    oden.Put("key", "value");
+    // Get a value by key
+    String value = oden.Get("key");
+    
+    // Delete a key-value pair
+    oden.Delete("key");
+
+}
+```
+
+## References
+
+Check out these resources that inspired this project:
+- [Bitcask paper](https://riak.com/assets/bitcask-intro.pdf)
+- [Martin Kleppmann's "Designing Data-Intensive Applications"](https://dataintensive.net/)
+
+## [Installation](#installation)
+
+### Prerequisites
+Make sure you have the following installed:
+- Java 21
+- Maven 4+
 
 To install Oden, follow these steps:
 
@@ -32,31 +57,9 @@ To install Oden, follow these steps:
   mvn clean install
   ```
 
-## Usage
-
-Here's a basic example of how to use Oden in Java:
-
-```java
-import io.maelstrom.oden.OdenOptions;
-import io.maelstrom.oden.Oden;
-
-{
-    var options = OdenOptions("/path/to/data/directory");
-    var oden = Oden.open(options);
-    
-    oden.Put("key", "value");
-    // Get a value by key
-    String value = oden.Get("key");
-    
-    // Delete a key-value pair
-    oden.Delete("key");
-
-}
-```
-
 ## Contributing
 
-Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) first.
+Feel free to open issues or PRs if you spot something interesting! This is a learning project, so I'm open to suggestions and improvements.
 
 ## License
 
